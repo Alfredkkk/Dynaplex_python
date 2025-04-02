@@ -3,6 +3,7 @@ Policy implementations for Zero-shot Lost Sales Inventory Control
 """
 
 import numpy as np
+from scipy import special
 from typing import Dict, Any
 
 from dynaplex.core.policy import Policy
@@ -103,7 +104,7 @@ class MyopicPolicy(Policy):
         critical_ratio = state["p"] / (state["p"] + self._mdp.h)
         
         # Calculate order quantity using normal approximation
-        z_score = np.sqrt(2) * np.erfinv(2 * critical_ratio - 1)  # Inverse CDF of standard normal
+        z_score = np.sqrt(2) * special.erfinv(2 * critical_ratio - 1)  # Inverse CDF of standard normal
         target = mean_demand + z_score * std_demand
         
         # Adjust for current inventory

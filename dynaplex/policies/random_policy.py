@@ -38,15 +38,27 @@ class RandomPolicy(Policy):
         Returns:
             Random valid action
         """
-        # Find valid actions
+        # Find valid actions, but limit to the state's order_constraint
+        max_order = min(state.get("order_constraint", 0), self._mdp.num_valid_actions() - 1)
         valid_actions = []
-        for action in range(self._mdp.num_valid_actions()):
+        
+        for action in range(max_order + 1):
             if self._mdp.is_action_valid(state, action):
                 valid_actions.append(action)
         
         # If no valid actions, return 0 as a fallback
         if not valid_actions:
+            print(f"Warning: No valid actions found, using 0 as fallback. max_order={max_order}")
             return 0
         
         # Return random valid action
-        return np.random.choice(valid_actions) 
+        chosen_action = np.random.choice(valid_actions)
+        
+        # Double-check validity (debugging)
+        if not self._mdp.is_action_valid(state, chosen_action):
+            print(f"Warning: Chosen action {chosen_action} from {valid_actions} is not valid!")
+            # Force return a safe action
+            return 0
+            
+        # Explicitly ensure integer return
+        return int(chosen_action) 

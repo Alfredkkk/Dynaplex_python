@@ -56,6 +56,9 @@ class Simulator:
         while not done and step < self.max_steps:
             # Choose action
             action = policy.get_action(state)
+            # Ensure action is an integer
+            if not isinstance(action, int):
+                action = int(action)
             actions.append(action)
             
             # Take action

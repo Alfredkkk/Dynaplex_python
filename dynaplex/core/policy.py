@@ -160,13 +160,24 @@ def create_policy(mdp, id: Optional[str] = None, **kwargs) -> Policy:
         if id not in available_policies:
             raise ValueError(f"Policy '{id}' not found for MDP '{mdp.identifier}'")
         
+        # Special case for random policy
+        if id == "random":
+            from dynaplex.policies.random_policy import RandomPolicy
+            return RandomPolicy(mdp, kwargs)
+        
         # Import the policy module for the MDP
         module_path = f"dynaplex.models.{mdp.type_identifier.lower()}.policies"
         try:
             module = __import__(module_path, fromlist=["create_policy"])
             return module.create_policy(mdp, id, **kwargs)
         except (ImportError, AttributeError):
-            raise ValueError(f"Failed to load policy '{id}' for MDP '{mdp.identifier}'")
+            # Try with the MDP identifier instead
+            try:
+                module_path = f"dynaplex.models.{mdp.identifier}.policies"
+                module = __import__(module_path, fromlist=["create_policy"])
+                return module.create_policy(mdp, id, **kwargs)
+            except (ImportError, AttributeError):
+                raise ValueError(f"Failed to load policy '{id}' for MDP '{mdp.identifier}'")
     
     # If no ID provided, create a default policy
     from dynaplex.policies.random_policy import RandomPolicy

@@ -37,7 +37,7 @@ def evaluate_policies():
     )
     
     # Create simulator for evaluation
-    simulator = dp.get_simulator(mdp, num_episodes=100, max_steps=100)
+    simulator = dp.get_simulator(mdp, config={"num_episodes": 100, "max_steps": 100})
     
     # Get different policies
     random_policy = mdp.get_policy(id="random")
@@ -137,7 +137,7 @@ def train_and_evaluate_neural_network():
     nn_policy = trainer.train(callback=progress_callback)
     
     # Create simulator for evaluation
-    simulator = dp.get_simulator(mdp, num_episodes=100, max_steps=100)
+    simulator = dp.get_simulator(mdp, config={"num_episodes": 100, "max_steps": 100})
     
     # Evaluate neural network policy
     print("\nEvaluating Neural Network Policy...")
@@ -188,7 +188,7 @@ def visualize_policy_behavior():
     )
     
     # Create simulator
-    simulator = dp.get_simulator(mdp, max_steps=50)
+    simulator = dp.get_simulator(mdp, config={"max_steps": 50})
     
     # Get base stock policy
     policy = mdp.get_policy(id="base_stock", target_level=15)

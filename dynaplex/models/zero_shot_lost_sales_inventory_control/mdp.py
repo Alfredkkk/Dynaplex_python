@@ -111,7 +111,7 @@ class ZeroShotLostSalesInventoryControlMDP(MDP):
         super().__init__(config)
         
         # Set default parameters
-        self.discount_factor = config.get("discount_factor", 0.99)
+        # self.discount_factor = config.get("discount_factor", 0.99)  # This line causes the error
         self.max_p = config.get("max_p", 10.0)
         self.min_p = config.get("min_p", 1.0)
         self.p = config.get("p", 5.0)
@@ -291,17 +291,24 @@ class ZeroShotLostSalesInventoryControlMDP(MDP):
         Returns:
             True if the action is valid, False otherwise
         """
+        # Convert action to integer if it's a numpy type or float
+        if isinstance(action, (np.integer, np.floating, float)):
+            action = int(action)
+        
         # Action must be an integer between 0 and max_order_size
         if not isinstance(action, int) or action < 0:
+            print(f"Action {action} invalid: not an integer or negative. Type: {type(action)}")
             return False
         
         # Check if action exceeds order constraint
         if action > state["order_constraint"]:
+            print(f"Action {action} invalid: exceeds order constraint {state['order_constraint']}")
             return False
         
         # Check if action would exceed system inventory constraint
         total_inventory = state["inventory"] + state["pipeline"].sum() + action
         if total_inventory > state["max_system_inv"]:
+            print(f"Action {action} invalid: total inventory {total_inventory} exceeds max {state['max_system_inv']}")
             return False
         
         return True
