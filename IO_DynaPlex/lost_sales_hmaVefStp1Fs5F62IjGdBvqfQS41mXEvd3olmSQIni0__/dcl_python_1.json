@@ -1,0 +1,7 @@
+{
+ "input_type": "dict",
+ "gen": 1,
+ "num_inputs": 3,
+ "num_outputs": 7,
+ "id": "torchscript"
+}

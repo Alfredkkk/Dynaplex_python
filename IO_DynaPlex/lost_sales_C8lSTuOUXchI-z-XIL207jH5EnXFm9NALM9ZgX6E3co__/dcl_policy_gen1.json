@@ -1,0 +1,10 @@
+{
+ "gen": 1,
+ "id": "NN_Policy",
+ "nn_architecture": {
+  "hidden_layers": [],
+  "type": "mlp"
+ },
+ "num_inputs": 3,
+ "num_outputs": 6
+}

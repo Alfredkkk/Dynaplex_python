@@ -1,0 +1,16 @@
+{
+ "id": "torchscript",
+ "gen": 1,
+ "num_inputs": 3,
+ "num_outputs": 7,
+ "input_type": "tensor",
+ "nn_architecture": {
+  "type": "mlp",
+  "hidden_layers": [
+   256,
+   128,
+   128,
+   128
+  ]
+ }
+}
