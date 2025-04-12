@@ -26,109 +26,119 @@ class Simulator:
         self.config = config or {}
         self.max_steps = self.config.get("max_steps", 1000)
         self.num_episodes = self.config.get("num_episodes", 100)
+        self.rng = np.random.RandomState(self.config.get("seed", None))
     
-    def run_episode(self, policy, seed: Optional[int] = None) -> Dict[str, Any]:
+    def run_episode(self, policy, seed=None):
         """
         Run a single episode using the given policy.
         
         Args:
-            policy: Policy to evaluate
-            seed: Optional random seed
+            policy: Policy to use for action selection
+            seed: Random seed for reproducibility
             
         Returns:
-            Dictionary containing episode results
+            Dictionary with episode results
         """
-        # Set random seed if provided
-        if seed is not None:
-            np.random.seed(seed)
-        
-        # Get initial state
+        # Initialize state
         state = self.mdp.get_initial_state(seed)
         
-        # Run episode
         total_reward = 0.0
-        step = 0
-        done = False
-        states = [state]
-        actions = []
-        rewards = []
+        discounted_return = 0.0
+        discount_factor = self.mdp.discount_factor
+        discount_cumulative = 1.0
         
-        while not done and step < self.max_steps:
-            # Choose action
+        state_history = [state]
+        action_history = []
+        reward_history = []
+        
+        # Run episode
+        for step in range(self.config.get("max_steps", 100)):
+            # Get action using policy
             action = policy.get_action(state)
-            # Ensure action is an integer
-            if not isinstance(action, int):
-                action = int(action)
-            actions.append(action)
             
-            # Take action
+            # Apply action to environment
             next_state, reward, done = self.mdp.get_next_state_reward(state, action)
-            states.append(next_state)
-            rewards.append(reward)
             
-            # Update total reward
+            # Update histories
+            action_history.append(action)
+            reward_history.append(reward)
+            
+            # Update running totals
             total_reward += reward
+            discounted_return += discount_cumulative * reward
+            discount_cumulative *= discount_factor
             
             # Update state
             state = next_state
-            step += 1
+            state_history.append(state)
+            
+            # Check if episode is done
+            if done:
+                break
         
         # Return results
         return {
             "total_reward": total_reward,
-            "steps": step,
-            "states": states,
-            "actions": actions,
-            "rewards": rewards,
-            "discounted_return": self._compute_discounted_return(rewards)
+            "discounted_return": discounted_return,
+            "num_steps": len(action_history),
+            "state_history": state_history,
+            "action_history": action_history,
+            "reward_history": reward_history
         }
     
-    def evaluate(self, policy, seed: Optional[int] = None) -> Dict[str, Any]:
+    def evaluate(self, policy, num_episodes=None, render=False):
         """
-        Evaluate a policy on multiple episodes.
+        Evaluate a policy over multiple episodes.
         
         Args:
             policy: Policy to evaluate
-            seed: Optional random seed
+            num_episodes: Number of episodes to run (overrides config)
+            render: Whether to render the environment
             
         Returns:
-            Dictionary containing evaluation results
+            Dictionary with evaluation results
         """
-        # Set random seed if provided
-        if seed is not None:
-            np.random.seed(seed)
-            episode_seeds = [np.random.randint(0, 2**32) for _ in range(self.num_episodes)]
-        else:
-            episode_seeds = [None] * self.num_episodes
+        if num_episodes is None:
+            num_episodes = self.config.get("num_episodes", 10)
+        
+        rewards = []
+        discounted_returns = []
+        steps = []
         
         # Run episodes
-        start_time = time.time()
-        episode_results = []
-        
-        for i, episode_seed in enumerate(episode_seeds):
+        for i in range(num_episodes):
+            # Generate episode seed
+            episode_seed = self.rng.randint(0, 2**32 - 1)
+            
+            # Run episode
             result = self.run_episode(policy, episode_seed)
-            episode_results.append(result)
-        
-        end_time = time.time()
+            
+            # Update statistics
+            rewards.append(result["total_reward"])
+            discounted_returns.append(result["discounted_return"])
+            steps.append(result["num_steps"])
         
         # Compute statistics
-        total_rewards = [result["total_reward"] for result in episode_results]
-        discounted_returns = [result["discounted_return"] for result in episode_results]
-        steps = [result["steps"] for result in episode_results]
+        average_reward = np.mean(rewards)
+        std_reward = np.std(rewards)
+        average_discounted_return = np.mean(discounted_returns)
+        average_steps = np.mean(steps)
         
-        # Return overall results
+        # Get policy type
+        policy_type = "unknown"
+        if hasattr(policy, "type_identifier"):
+            policy_type = policy.type_identifier
+        elif hasattr(policy, "policy") and hasattr(policy.policy, "type_identifier"):
+            # For wrapped policies like FeatureAdapterPolicy
+            policy_type = f"adapter_{policy.policy.type_identifier}"
+        
+        # Return results
         return {
-            "num_episodes": self.num_episodes,
-            "average_reward": np.mean(total_rewards),
-            "std_reward": np.std(total_rewards),
-            "min_reward": np.min(total_rewards),
-            "max_reward": np.max(total_rewards),
-            "average_discounted_return": np.mean(discounted_returns),
-            "average_steps": np.mean(steps),
-            "total_steps": np.sum(steps),
-            "execution_time": end_time - start_time,
-            "mdp_identifier": self.mdp.identifier,
-            "policy_type": policy.type_identifier
+            "average_reward": average_reward,
+            "std_reward": std_reward,
+            "average_discounted_return": average_discounted_return,
+            "average_steps": average_steps,
+            "policy_type": policy_type
         }
     
     def get_trace(self, policy, max_steps: int = 100, seed: Optional[int] = None) -> List[Dict[str, Any]]:

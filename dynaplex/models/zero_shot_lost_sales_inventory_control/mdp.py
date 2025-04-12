@@ -282,33 +282,22 @@ class ZeroShotLostSalesInventoryControlMDP(MDP):
     
     def is_action_valid(self, state: Dict[str, Any], action: int) -> bool:
         """
-        Check if an action is valid in the given state.
+        Check if an action is valid for the given state.
         
         Args:
-            state: Current state
-            action: Action to check
+            state: The state to check
+            action: The action to validate
             
         Returns:
             True if the action is valid, False otherwise
         """
-        # Convert action to integer if it's a numpy type or float
-        if isinstance(action, (np.integer, np.floating, float)):
-            action = int(action)
-        
-        # Action must be an integer between 0 and max_order_size
-        if not isinstance(action, int) or action < 0:
-            print(f"Action {action} invalid: not an integer or negative. Type: {type(action)}")
+        # Check if action is in range [0, max_order_size]
+        if action < 0 or action > state["order_constraint"]:
             return False
         
-        # Check if action exceeds order constraint
-        if action > state["order_constraint"]:
-            print(f"Action {action} invalid: exceeds order constraint {state['order_constraint']}")
-            return False
-        
-        # Check if action would exceed system inventory constraint
+        # Check if total inventory after action would exceed max_system_inv
         total_inventory = state["inventory"] + state["pipeline"].sum() + action
         if total_inventory > state["max_system_inv"]:
-            print(f"Action {action} invalid: total inventory {total_inventory} exceeds max {state['max_system_inv']}")
             return False
         
         return True
@@ -320,31 +309,41 @@ class ZeroShotLostSalesInventoryControlMDP(MDP):
         seed: Optional[int] = None
     ) -> Tuple[Dict[str, Any], float, bool]:
         """
-        Get the next state and reward after taking an action.
+        Get the next state and reward.
         
         Args:
             state: Current state
             action: Action to take
-            seed: Optional random seed
+            seed: Optional seed for random number generator
             
         Returns:
-            Tuple of (next_state, reward, done)
+            Tuple of (next_state, reward, is_done)
         """
         # Set random seed if provided
         if seed is not None:
-            self.rng = np.random.RandomState(seed)
+            self.set_random_seed(seed)
         
-        # Make a deep copy of the state
+        # Create a copy of the state
         next_state = self._copy_state(state)
         
-        # Apply action (order placement)
+        # Check if action is valid
+        if not self.is_action_valid(state, action):
+            # Adjust action to be valid
+            if action > next_state["order_constraint"]:
+                action = next_state["order_constraint"]
+            
+            total_inventory = next_state["inventory"] + next_state["pipeline"].sum() + action
+            if total_inventory > next_state["max_system_inv"]:
+                action = max(0, next_state["max_system_inv"] - (next_state["inventory"] + next_state["pipeline"].sum()))
+        
+        # Apply action (place order)
         reward = self._apply_action(next_state, action)
         
-        # Generate demand and update inventory
-        reward += self._process_demand(next_state)
-        
-        # Process leadtime and pipeline
+        # Process pipeline (orders arriving)
         self._process_pipeline(next_state)
+        
+        # Process demand
+        reward += self._process_demand(next_state)
         
         # Update statistics
         self._update_statistics(next_state)
@@ -352,10 +351,8 @@ class ZeroShotLostSalesInventoryControlMDP(MDP):
         # Increment period
         next_state["period"] += 1
         
-        # Check if done (for finite horizon MDPs, always False for infinite horizon)
-        done = False
-        
-        return next_state, reward, done
+        # Return next state, reward, and done flag
+        return next_state, reward, False
     
     def get_features(self, state: Dict[str, Any]) -> np.ndarray:
         """
@@ -453,10 +450,6 @@ class ZeroShotLostSalesInventoryControlMDP(MDP):
         Returns:
             Immediate reward (ordering cost)
         """
-        # Check if action is valid
-        if not self.is_action_valid(state, action):
-            raise ValueError(f"Invalid action {action} for state")
-        
         # Calculate ordering cost
         ordering_cost = 0.0
         

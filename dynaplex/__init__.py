@@ -12,6 +12,10 @@ from dynaplex.core.simulator import Simulator
 from dynaplex.core.trainer import Trainer
 from dynaplex.utils.io import filepath, io_path
 
+# Explictly import the nn and policies modules to make them available
+import dynaplex.nn
+import dynaplex.policies
+
 __version__ = "0.1.0"
 
 # Factory functions
@@ -76,7 +80,7 @@ def load_policy(mdp, path):
     Returns:
         Policy: The loaded policy
     """
-    from dynaplex.core.policy import load_policy_from_file
+    from dynaplex.policies import load_policy_from_file
     return load_policy_from_file(mdp, path)
 
 def save_policy(policy, path, metadata=None):

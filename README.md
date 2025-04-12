@@ -14,6 +14,63 @@ The library supports:
 - Training generally capable agents using Deep RL
 - Super-MDP frameworks for inventory control
 
+## New Features: GC-LSN and Zero-shot Experiments
+
+The library now includes:
+
+1. **GC-LSN (Greedy Capped Lost Sales Network)** implementation:
+   - Training scripts for replicating the GC-LSN model from the paper
+   - Model loading utilities for using pre-trained weights
+   - Visualization tools for policy analysis
+
+2. **Zero-shot Generalization Experiments**:
+   - Evaluate model performance across varied demand patterns
+   - Test robustness to different leadtime distributions
+   - Analyze sensitivity to cost parameter changes
+   - Compare against benchmark policies like base-stock and myopic
+
+## Getting Started
+
+To use this library, first install it:
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/DynaPlex_Python.git
+cd DynaPlex_Python
+
+# Install the package
+pip install -e .
+```
+
+Then try running the example script:
+
+```bash
+python examples/zero_shot_inventory_control.py
+```
+
+## Running GC-LSN Experiments
+
+We provide a convenient script to run all experiments:
+
+```bash
+# Run the pre-trained model evaluation and zero-shot experiments
+./run_experiments.sh
+
+# To also train a new GC-LSN model (time-consuming)
+./run_experiments.sh --train
+```
+
+The script will:
+1. Load and evaluate the pre-trained GC-LSN model
+2. Run zero-shot generalization experiments
+3. Optionally train a new model from scratch
+
+Results will be saved as:
+- `gc_lsn_comparison.png` - Performance comparison against benchmark policies
+- `gc_lsn_policy_behavior.png` - Visualization of policy behavior
+- `gc_lsn_state_action_map.png` - Heatmap of state-action mappings
+- Various CSV files and plots in the `results/zero_shot/` directory
+
 ## Implementation Details
 
 This Python implementation includes:
@@ -42,25 +99,6 @@ This Python implementation includes:
 5. **Reinforcement Learning Algorithms**:
    - Deep Controlled Learning (DCL) as described in the paper
    - Framework for implementing DQN, PPO, and other algorithms
-
-## Getting Started
-
-To use this library, first install it:
-
-```bash
-# Clone the repository
-git clone https://github.com/your-username/DynaPlex_Python.git
-cd DynaPlex_Python
-
-# Install the package
-pip install -e .
-```
-
-Then try running the example script:
-
-```bash
-python examples/zero_shot_inventory_control.py
-```
 
 ## Creating a Custom MDP
 
@@ -97,27 +135,6 @@ This Python reimplementation differs from the original C++ version in these ways
 4. **Extensibility**: Easier to extend with new models, policies, and algorithms
 5. **Visualization**: Built-in plotting and analysis tools
 
-## Usage Examples
-
-```python
-import dynaplex as dp
-
-# Load an inventory MDP model
-mdp = dp.get_mdp(id="Zero_Shot_Lost_Sales_Inventory_Control")
-
-# Get a predefined policy
-policy = mdp.get_policy(id="base_stock")
-
-# Create a simulator and run evaluation
-simulator = dp.get_simulator(mdp)
-results = simulator.evaluate(policy)
-print(f"Average cost: {results['average_cost']}")
-
-# Train a neural network policy
-trainer = dp.get_trainer(mdp, algorithm="dcl")
-nn_policy = trainer.train(episodes=1000)
-```
-
 ## Structure
 
 - `dynaplex/core` - Core functionality and interfaces
@@ -126,6 +143,8 @@ nn_policy = trainer.train(episodes=1000)
 - `dynaplex/policies` - Policy implementations
 - `dynaplex/nn` - Neural network architectures
 - `dynaplex/utils` - Utility functions and helpers
+- `examples/training` - Training and evaluation scripts for GC-LSN
+- `examples/zero_shot_inventory_control.py` - Basic example for the zero-shot inventory control problem
 
 ## References
 
